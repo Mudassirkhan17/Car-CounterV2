@@ -5,34 +5,48 @@ import numpy as np
 from sort import Sort
 import pandas as pd
 
-model = YOLO("yolov5n.pt")  # Load the pre-trained YOLOv5 nano model
+model = YOLO("yolov5su.pt")  # Load the pre-trained YOLOv5 nano model
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
 vehicle_classes = set([2, 3, 5, 7])  # car, motorcycle, bus, truck
 
 # cap = cv2.VideoCapture(0)  # Initialize webcam capture (0 refers to the default camera)
-video_path = "location6.MTS"
+video_path = "00002.MTS"
 cap = cv2.VideoCapture(video_path) 
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.45  # Default threshold for vehicles
-bike_confidence_threshold = 0.01  # Higher threshold for bicycle (class 1)
+confidence_threshold = 0.12  # Default threshold for vehicles
+bike_confidence_threshold = 0.001  # Higher threshold for bicycle (class 1)
+car_confidence_threshold = 0.35
 truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker
-tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.1)
+tracker = Sort(max_age=60, min_hits=2, iou_threshold=0.1)
+
+
+#laneA [900, 368+10, 1103, 393+10]
+# laneB  [410, 416, 788, 596]
+# lane c [159, 357-10, 279, 407-10]
+# lane e temporary [960+35, 363, 1025+35, 355], [1044, 361, 1150, 357]
+# lane e [975+35, 363+7, 1100+35, 355+7]
+
+
+# lanea1 [609+20, 404, 1024+20, 403]
+# lanea2 [609+90, 404+30, 1024+90, 403+30]
+# laneb1 [240-30, 412, 624-30, 411]
 
 # Counting line and variables
-limitsUp = [1014, 396-10, 1268, 387-10]  # (x1, y1, x2, y2)
-limitsDown = [1229+30, 370, 1166, 450]  # (514+100, 396+40, 1058+100, 387+40)
+laneA = [240-30, 412-3, 624-30, 411-3]  # (x1, y1, x2, y2)
+laneB = [240-90, 412+30, 624-90, 411+30]  # (514+100, 396+40, 1058+100, 387+40)
+
 
 # Define y-limits for robust line crossing
-limitsUp_y_min = limitsUp[1] - 30
-limitsUp_y_max = limitsUp[1] + 30
-limitsDown_y_min = limitsDown[1] - 30
-limitsDown_y_max = limitsDown[1] + 30
+laneA_y_min = laneA[1] - 17
+laneA_y_max = laneA[1] + 17
+laneB_y_min = laneB[1] - 17
+laneB_y_max = laneB[1] + 17
 
 # Per-class counting sets
 carCountUp = set()
@@ -46,8 +60,8 @@ busCountDown = set()
 motorbikeCountDown = set()
 
 # Add these before the while loop
-lineUp_color = (0, 0, 255)    # Red in BGR
-lineDown_color = (0, 0, 255)  # Red in BGR
+lineA_color = (0, 0, 255)    # Red in BGR
+lineB_color = (0, 0, 255)  # Red in BGR
 
 interval_seconds = 30  # 2 minutes
 fps = cap.get(cv2.CAP_PROP_FPS)
@@ -73,6 +87,12 @@ while True:  # Start an infinite loop to continuously process video frames
         # Set threshold: use bike_confidence_threshold for bicycle, truck_confidence_threshold for truck, else default
         if cls == 1:
             threshold = bike_confidence_threshold
+        elif cls == 2:
+            threshold = car_confidence_threshold
+        elif cls == 3:
+            threshold = bike_confidence_threshold
+        elif cls == 0:
+            threshold = bike_confidence_threshold
         elif cls == 7:
             threshold = truck_confidence_threshold
         else:
@@ -94,8 +114,8 @@ while True:  # Start an infinite loop to continuously process video frames
     tracks = tracker.update(dets)
 
     # Reset line colors to red at the start of each frame
-    lineUp_color = (0, 0, 255)
-    lineDown_color = (0, 0, 255)
+    lineA_color = (0, 0, 255)
+    lineB_color = (0, 0, 255)
 
     for i, track in enumerate(tracks):
         x1, y1, x2, y2, track_id = map(int, track)
@@ -115,8 +135,8 @@ while True:  # Start an infinite loop to continuously process video frames
         cy = int((y1 + y2) / 2)
         cv2.circle(frame, (cx, cy), 4, (0, 0, 255), -1)
 
-        # Up counting
-        if (limitsUp[0] < cx < limitsUp[2]) and (limitsUp_y_min < cy < limitsUp_y_max):
+        # Up counting (laneA)
+        if (laneA[0] < cx < laneA[2]) and (laneA_y_min < cy < laneA_y_max):
             if cls == 2 and track_id not in carCountUp:
                 carCountUp.add(track_id)
             elif cls == 3 and track_id not in motorbikeCountUp:
@@ -125,10 +145,10 @@ while True:  # Start an infinite loop to continuously process video frames
                 busCountUp.add(track_id)
             elif cls == 7 and track_id not in truckCountUp:
                 truckCountUp.add(track_id)
-            lineUp_color = (0, 255, 0)  # Turn line green if hit
+            lineA_color = (0, 255, 0)  # Turn line green if hit
 
-        # Down counting
-        if (limitsDown[0] < cx < limitsDown[2]) and (limitsDown_y_min < cy < limitsDown_y_max):
+        # Down counting (laneB)
+        if (laneB[0] < cx < laneB[2]) and (laneB_y_min < cy < laneB_y_max):
             if cls == 2 and track_id not in carCountDown:
                 carCountDown.add(track_id)
             elif cls == 3 and track_id not in motorbikeCountDown:
@@ -137,15 +157,15 @@ while True:  # Start an infinite loop to continuously process video frames
                 busCountDown.add(track_id)
             elif cls == 7 and track_id not in truckCountDown:
                 truckCountDown.add(track_id)
-            lineDown_color = (0, 255, 0)  # Turn line green if hit
+            lineB_color = (0, 255, 0)  # Turn line green if hit
 
         label = f"{classname[cls]} ID:{track_id}"
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
         cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
     # Draw the counting lines and counts with their current color
-    cv2.line(frame, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), lineUp_color, 2)
-    cv2.line(frame, (limitsDown[0], limitsDown[1]), (limitsDown[2], limitsDown[3]), lineDown_color, 2)
+    cv2.line(frame, (laneA[0], laneA[1]), (laneA[2], laneA[3]), lineA_color, 2)
+    cv2.line(frame, (laneB[0], laneB[1]), (laneB[2], laneB[3]), lineB_color, 2)
 
     # Display all counts at the top of the frame
     cv2.putText(frame, f"UP: Car: {len(carCountUp)}  Truck: {len(truckCountUp)}  Bus: {len(busCountUp)}  Motorbike: {len(motorbikeCountUp)}",
