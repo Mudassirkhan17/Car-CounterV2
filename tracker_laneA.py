@@ -5,7 +5,7 @@ import numpy as np
 from sort import Sort
 import pandas as pd
 
-model = YOLO("yolov5l.pt")  # Load the pre-trained YOLOv5 nano model
+model = YOLO("yolov5n.pt")  # Load the pre-trained YOLOv5 nano model
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
@@ -17,12 +17,12 @@ cap = cv2.VideoCapture(video_path)
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.5  # Default threshold for vehicles
-bike_confidence_threshold = 0.05  # Higher threshold for bicycle (class 1)
+confidence_threshold = 0.45  # Default threshold for vehicles
+bike_confidence_threshold = 0.01  # Higher threshold for bicycle (class 1)
 truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker
-tracker = Sort(max_age=40, min_hits=1, iou_threshold=0.1)
+tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.1)
 
 # Counting line and variables
 limitsUp = [614, 396-10, 1238, 387-10]  # (x1, y1, x2, y2)
@@ -140,8 +140,8 @@ while True:  # Start an infinite loop to continuously process video frames
             lineDown_color = (0, 255, 0)  # Turn line green if hit
 
         label = f"{classname[cls]} ID:{track_id}"
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
-        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
+        # cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
     # Draw the counting lines and counts with their current color
     cv2.line(frame, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), lineUp_color, 2)
