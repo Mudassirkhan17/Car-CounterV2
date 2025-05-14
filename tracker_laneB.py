@@ -17,22 +17,22 @@ cap = cv2.VideoCapture(video_path)
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.5  # Default threshold for vehicles
-bike_confidence_threshold = 0.05  # Higher threshold for bicycle (class 1)
+confidence_threshold = 0.62  # Default threshold for vehicles
+bike_confidence_threshold = 0.02  # Higher threshold for bicycle (class 1)
 truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker
 tracker = Sort(max_age=40, min_hits=1, iou_threshold=0.1)
 
 # Counting line and variables
-limitsUp = [614, 396-10, 1238, 387-10]  # (x1, y1, x2, y2)
-limitsDown = [614, 436-5, 1258, 427-5]  # (514+100, 396+40, 1058+100, 387+40)
+limitsUp = [70-15, 390-25, 610-15, 389-25]
+limitsDown = [60-15, 401+10, 610-15, 399+10]
 
 # Define y-limits for robust line crossing
-limitsUp_y_min = limitsUp[1] - 30
-limitsUp_y_max = limitsUp[1] + 30
-limitsDown_y_min = limitsDown[1] - 30
-limitsDown_y_max = limitsDown[1] + 30
+limitsUp_y_min = limitsUp[1] - 40
+limitsUp_y_max = limitsUp[1] + 40
+limitsDown_y_min = limitsDown[1] - 40
+limitsDown_y_max = limitsDown[1] + 40
 
 # Per-class counting sets
 carCountUp = set()
