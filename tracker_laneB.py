@@ -17,8 +17,8 @@ cap = cv2.VideoCapture(video_path)
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.62  # Default threshold for vehicles
-bike_confidence_threshold = 0.02  # Higher threshold for bicycle (class 1)
+confidence_threshold = 0.5  # Default threshold for vehicles
+bike_confidence_threshold = 0.01  # Higher threshold for bicycle (class 1)
 truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker

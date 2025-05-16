@@ -1,11 +1,20 @@
-import cv2  # OpenCV library for computer vision tasks
-from ultralytics import YOLO  # YOLO object detection model from Ultralytics
-import math  # For mathematical operations
 import numpy as np
+print("Imported numpy successfully")
+from ultralytics import YOLO
+print("Imported YOLO successfully")
+import cv2
+print("Imported cv2 successfully")
+import math
+print("Imported math successfully")
+import time
+print("Imported time successfully")
 from sort import Sort
+print("Imported Sort successfully")
 import pandas as pd
 
 model = YOLO("yolov5n.pt")  # Load the pre-trained YOLOv5 nano model
+model.to('cpu')
+
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
@@ -49,11 +58,14 @@ motorbikeCountDown = set()
 lineUp_color = (0, 0, 255)    # Red in BGR
 lineDown_color = (0, 0, 255)  # Red in BGR
 
-interval_seconds = 30  # 2 minutes
+interval_seconds = 300  # 2 minutes
 fps = cap.get(cv2.CAP_PROP_FPS)
 interval_frames = int(interval_seconds * fps)
 frame_counter = 0
 interval_counter = 0
+
+# Add this at the start of your main code
+print("Starting main program")
 
 while True:  # Start an infinite loop to continuously process video frames
     ret, frame = cap.read()  # Read a frame from the webcam (ret is True if successful)
@@ -113,7 +125,7 @@ while True:  # Start an infinite loop to continuously process video frames
         # Calculate the center of the bounding box
         cx = int((x1 + x2) / 2)
         cy = int((y1 + y2) / 2)
-        cv2.circle(frame, (cx, cy), 4, (0, 0, 255), -1)
+        # cv2.circle(frame, (cx, cy), 4, (0, 0, 255), -1)
 
         # Up counting
         if (limitsUp[0] < cx < limitsUp[2]) and (limitsUp_y_min < cy < limitsUp_y_max):
@@ -140,18 +152,18 @@ while True:  # Start an infinite loop to continuously process video frames
             lineDown_color = (0, 255, 0)  # Turn line green if hit
 
         label = f"{classname[cls]} ID:{track_id}"
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
-        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
+        # cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
     # Draw the counting lines and counts with their current color
-    cv2.line(frame, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), lineUp_color, 2)
-    cv2.line(frame, (limitsDown[0], limitsDown[1]), (limitsDown[2], limitsDown[3]), lineDown_color, 2)
+    # cv2.line(frame, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), lineUp_color, 2)
+    # cv2.line(frame, (limitsDown[0], limitsDown[1]), (limitsDown[2], limitsDown[3]), lineDown_color, 2)
 
     # Display all counts at the top of the frame
-    cv2.putText(frame, f"UP: Car: {len(carCountUp)}  Truck: {len(truckCountUp)}  Bus: {len(busCountUp)}  Motorbike: {len(motorbikeCountUp)}",
-                (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 255), 1)
-    cv2.putText(frame, f"DOWN: Car: {len(carCountDown)}  Truck: {len(truckCountDown)}  Bus: {len(busCountDown)}  Motorbike: {len(motorbikeCountDown)}",
-                (30, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 1)
+    # cv2.putText(frame, f"UP: Car: {len(carCountUp)}  Truck: {len(truckCountUp)}  Bus: {len(busCountUp)}  Motorbike: {len(motorbikeCountUp)}",
+    #             (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 255), 1)
+    # cv2.putText(frame, f"DOWN: Car: {len(carCountDown)}  Truck: {len(truckCountDown)}  Bus: {len(busCountDown)}  Motorbike: {len(motorbikeCountDown)}",
+    #             (30, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 1)
 
     frame_counter += 1
 
@@ -168,7 +180,7 @@ while True:  # Start an infinite loop to continuously process video frames
             "MotorbikeDown": len(motorbikeCountDown),
         }
         df = pd.DataFrame([data])
-        csv_name = f"vehicles_{interval_counter*interval_seconds}_{(interval_counter+1)*interval_seconds}.csv"
+        csv_name = f"vehicles_{interval_counter*interval_seconds}_{(interval_counter+1)*interval_seconds}_LaneA_00003_card1.csv"
         df.to_csv(csv_name, index=False)
         print(f"Saved {csv_name}")
 

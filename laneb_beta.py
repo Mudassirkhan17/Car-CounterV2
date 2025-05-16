@@ -5,7 +5,7 @@ import numpy as np
 from sort import Sort
 import pandas as pd
 
-model = YOLO("vehicle_kitti_v0_last.pt")  # Load the pre-trained YOLOv5 nano model
+model = YOLO("yolov5n.pt")  # Load the pre-trained YOLOv5 nano model
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
@@ -17,20 +17,21 @@ cap = cv2.VideoCapture(video_path)
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.5  # Default threshold for vehicles
-bike_confidence_threshold = 0.05  # Higher threshold for bicycle (class 1)
-truck_confidence_threshold = 0.84
+confidence_threshold = 0.39  # Default threshold for vehicles
+car_confidence_threshold = 0.70  # Specific threshold for cars (class 2)
+bike_confidence_threshold = 0.001  # Higher threshold for bicycle (class 1)
+truck_confidence_threshold = 0.74
 
 # Initialize SORT tracker
-tracker = Sort(max_age=40, min_hits=1, iou_threshold=0.1)
+tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.2)
 
 # Counting line and variables
-limitsUp = [614, 396-10, 1238, 387-10]  # (x1, y1, x2, y2)
-limitsDown = [614, 436-5, 1258, 427-5]  # (514+100, 396+40, 1058+100, 387+40)
+limitsUp = [70-15, 390-25, 610-15, 389-25]
+limitsDown = [60-15, 401+10, 610-15, 399+10]
 
 # Define y-limits for robust line crossing
-limitsUp_y_min = limitsUp[1] - 30
-limitsUp_y_max = limitsUp[1] + 30
+limitsUp_y_min = limitsUp[1] - 33
+limitsUp_y_max = limitsUp[1] + 33
 limitsDown_y_min = limitsDown[1] - 30
 limitsDown_y_max = limitsDown[1] + 30
 
@@ -73,6 +74,8 @@ while True:  # Start an infinite loop to continuously process video frames
         # Set threshold: use bike_confidence_threshold for bicycle, truck_confidence_threshold for truck, else default
         if cls == 1:
             threshold = bike_confidence_threshold
+        elif cls == 2:
+            threshold = car_confidence_threshold
         elif cls == 7:
             threshold = truck_confidence_threshold
         else:
@@ -149,9 +152,9 @@ while True:  # Start an infinite loop to continuously process video frames
 
     # Display all counts at the top of the frame
     cv2.putText(frame, f"UP: Car: {len(carCountUp)}  Truck: {len(truckCountUp)}  Bus: {len(busCountUp)}  Motorbike: {len(motorbikeCountUp)}",
-                (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 255), 2)
+                (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 255), 1)
     cv2.putText(frame, f"DOWN: Car: {len(carCountDown)}  Truck: {len(truckCountDown)}  Bus: {len(busCountDown)}  Motorbike: {len(motorbikeCountDown)}",
-                (30, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+                (30, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 1)
 
     frame_counter += 1
 

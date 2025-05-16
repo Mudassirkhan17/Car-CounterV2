@@ -5,14 +5,14 @@ import numpy as np
 from sort import Sort
 import pandas as pd
 
-model = YOLO("yolov5n.pt")  # Load the pre-trained YOLOv5 nano model
+model = YOLO("yolov5x.pt")  # Load the pre-trained YOLOv5 nano model
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
 vehicle_classes = set([2, 3, 5, 7])  # car, motorcycle, bus, truck
 
 # cap = cv2.VideoCapture(0)  # Initialize webcam capture (0 refers to the default camera)
-video_path = "location1.MTS"
+video_path = "00011.MTS"
 cap = cv2.VideoCapture(video_path) 
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
@@ -20,9 +20,10 @@ cap = cv2.VideoCapture(video_path)
 confidence_threshold = 0.45  # Default threshold for vehicles
 bike_confidence_threshold = 0.01  # Higher threshold for bicycle (class 1)
 truck_confidence_threshold = 0.84
+car_confidence_threshold = 0.60  # Lower threshold for cars at night (class 2)
 
 # Initialize SORT tracker
-tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.1)
+tracker = Sort(max_age=45, min_hits=2, iou_threshold=0.1)
 
 # Counting line and variables
 limitsUp = [614, 396-10, 1238, 387-10]  # (x1, y1, x2, y2)
@@ -30,8 +31,8 @@ limitsDown = [614, 436-5, 1258, 427-5]  # (514+100, 396+40, 1058+100, 387+40)
 
 # Define y-limits for robust line crossing
 limitsUp_y_min = limitsUp[1] - 30
-limitsUp_y_max = limitsUp[1] + 30
-limitsDown_y_min = limitsDown[1] - 30
+limitsUp_y_max = limitsUp[1] + 20
+limitsDown_y_min = limitsDown[1] - 40
 limitsDown_y_max = limitsDown[1] + 30
 
 # Per-class counting sets
@@ -73,6 +74,8 @@ while True:  # Start an infinite loop to continuously process video frames
         # Set threshold: use bike_confidence_threshold for bicycle, truck_confidence_threshold for truck, else default
         if cls == 1:
             threshold = bike_confidence_threshold
+        elif cls == 2:
+            threshold = car_confidence_threshold
         elif cls == 7:
             threshold = truck_confidence_threshold
         else:
