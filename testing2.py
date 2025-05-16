@@ -12,26 +12,25 @@ classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","tru
 vehicle_classes = set([2, 3, 5, 7])  # car, motorcycle, bus, truck
 
 # cap = cv2.VideoCapture(0)  # Initialize webcam capture (0 refers to the default camera)
-video_path = "location1.MTS"
+video_path = "location6.MTS"
 cap = cv2.VideoCapture(video_path) 
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.39  # Default threshold for vehicles
-car_confidence_threshold = 0.70  # Specific threshold for cars (class 2)
-bike_confidence_threshold = 0.001  # Higher threshold for bicycle (class 1)
-truck_confidence_threshold = 0.74
+confidence_threshold = 0.45  # Default threshold for vehicles
+bike_confidence_threshold = 0.01  # Higher threshold for bicycle (class 1)
+truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker
-tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.2)
+tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.1)
 
 # Counting line and variables
-limitsUp = [70-15, 390-25, 610-15, 389-25]
-limitsDown = [60-15, 401+10, 610-15, 399+10]
+limitsUp = [1014, 396-10, 1268, 387-10]  # (x1, y1, x2, y2)
+limitsDown = [1229+30, 370, 1166, 450]  # (514+100, 396+40, 1058+100, 387+40)
 
 # Define y-limits for robust line crossing
-limitsUp_y_min = limitsUp[1] - 33
-limitsUp_y_max = limitsUp[1] + 33
+limitsUp_y_min = limitsUp[1] - 30
+limitsUp_y_max = limitsUp[1] + 30
 limitsDown_y_min = limitsDown[1] - 30
 limitsDown_y_max = limitsDown[1] + 30
 
@@ -50,7 +49,7 @@ motorbikeCountDown = set()
 lineUp_color = (0, 0, 255)    # Red in BGR
 lineDown_color = (0, 0, 255)  # Red in BGR
 
-interval_seconds = 60  # 2 minutes
+interval_seconds = 30  # 2 minutes
 fps = cap.get(cv2.CAP_PROP_FPS)
 interval_frames = int(interval_seconds * fps)
 frame_counter = 0
@@ -74,8 +73,6 @@ while True:  # Start an infinite loop to continuously process video frames
         # Set threshold: use bike_confidence_threshold for bicycle, truck_confidence_threshold for truck, else default
         if cls == 1:
             threshold = bike_confidence_threshold
-        elif cls == 2:
-            threshold = car_confidence_threshold
         elif cls == 7:
             threshold = truck_confidence_threshold
         else:

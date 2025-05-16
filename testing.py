@@ -5,36 +5,37 @@ import numpy as np
 from sort import Sort
 import pandas as pd
 
-model = YOLO("yolov5n.pt")  # Load the pre-trained YOLOv5 nano model
+model = YOLO("yolov5nu.pt")  # Load the pre-trained YOLOv5 nano model
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
 vehicle_classes = set([2, 3, 5, 7])  # car, motorcycle, bus, truck
 
 # cap = cv2.VideoCapture(0)  # Initialize webcam capture (0 refers to the default camera)
-video_path = "location1.MTS"
+video_path = "location6.MTS"
 cap = cv2.VideoCapture(video_path) 
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
-confidence_threshold = 0.45  # Default threshold for vehicles
-bike_confidence_threshold = 0.01  # Higher threshold for bicycle (class 1)
+confidence_threshold = 0.55  # Default threshold for vehicles
+car_confidence_threshold = 0.65  # Specific threshold for cars
+bike_confidence_threshold = 0.0  # Higher threshold for bicycle (class 1)
 truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker
-tracker = Sort(max_age=40, min_hits=2, iou_threshold=0.1)
+tracker = Sort(max_age=80, min_hits=2, iou_threshold=0.01)
 
 # Counting line and variables
-limitsUp = [614, 396-10, 1238, 387-10]  # (x1, y1, x2, y2)
-limitsDown = [614, 436-5, 1258, 427-5]  # (514+100, 396+40, 1058+100, 387+40)
+limitsUp = [488-10, 386+20, 676-10, 441+20]  # (x1, y1, x2, y2)
+limitsDown = [1014, 396-10, 1268, 387-10]  # (514+100, 396+40, 1058+100, 387+40)
 
 # Define y-limits for robust line crossing
-limitsUp_y_min = limitsUp[1] - 30
-limitsUp_y_max = limitsUp[1] + 30
+limitsUp_y_min = limitsUp[1] - 20
+limitsUp_y_max = limitsUp[1] + 20
 limitsDown_y_min = limitsDown[1] - 30
 limitsDown_y_max = limitsDown[1] + 30
 
-# Per-class counting sets
+# Per-class counting sets - final counts after crossing both lines
 carCountUp = set()
 truckCountUp = set()
 busCountUp = set()
@@ -45,15 +46,21 @@ truckCountDown = set()
 busCountDown = set()
 motorbikeCountDown = set()
 
+# Tracking sets for vehicles that have crossed only one line
+# These are temporary tracking sets, not final counts
+vehicles_crossed_up_line = {}  # track_id -> (cls, timestamp)
+vehicles_crossed_down_line = {}  # track_id -> (cls, timestamp)
+
 # Add these before the while loop
 lineUp_color = (0, 0, 255)    # Red in BGR
 lineDown_color = (0, 0, 255)  # Red in BGR
 
-interval_seconds = 30  # 2 minutes
+interval_seconds = 30  # 30 seconds
 fps = cap.get(cv2.CAP_PROP_FPS)
 interval_frames = int(interval_seconds * fps)
 frame_counter = 0
 interval_counter = 0
+frame_timestamp = 0  # Track frame number as timestamp
 
 while True:  # Start an infinite loop to continuously process video frames
     ret, frame = cap.read()  # Read a frame from the webcam (ret is True if successful)
@@ -61,6 +68,7 @@ while True:  # Start an infinite loop to continuously process video frames
         break
 
     frame = cv2.resize(frame, (1280, 720))
+    frame_timestamp += 1  # Increment frame counter as timestamp
 
     results = model(frame)  # Run the YOLO model on the current frame
 
@@ -70,9 +78,16 @@ while True:  # Start an infinite loop to continuously process video frames
         cls = int(box.cls[0])
         conf = float(box.conf[0])
 
-        # Set threshold: use bike_confidence_threshold for bicycle, truck_confidence_threshold for truck, else default
+        # Set threshold: use specific thresholds for each vehicle type
         if cls == 1:
             threshold = bike_confidence_threshold
+        elif cls == 3:
+            threshold = bike_confidence_threshold
+        elif cls == 0:
+            threshold = bike_confidence_threshold
+############################################################
+        elif cls == 2:
+            threshold = car_confidence_threshold
         elif cls == 7:
             threshold = truck_confidence_threshold
         else:
@@ -97,11 +112,21 @@ while True:  # Start an infinite loop to continuously process video frames
     lineUp_color = (0, 0, 255)
     lineDown_color = (0, 0, 255)
 
+    # Clean up old entries in the crossing dictionaries (older than 5 seconds)
+    timeout_frames = 95 * fps  # 5 seconds worth of frames
+    for track_id in list(vehicles_crossed_up_line.keys()):
+        timestamp = vehicles_crossed_up_line[track_id][1]
+        if frame_timestamp - timestamp > timeout_frames:
+            vehicles_crossed_up_line.pop(track_id)
+    
+    for track_id in list(vehicles_crossed_down_line.keys()):
+        timestamp = vehicles_crossed_down_line[track_id][1]
+        if frame_timestamp - timestamp > timeout_frames:
+            vehicles_crossed_down_line.pop(track_id)
+
     for i, track in enumerate(tracks):
         x1, y1, x2, y2, track_id = map(int, track)
         # Find the class for this detection (by IoU or nearest box)
-        # For simplicity, match by order if detections and tracks are aligned
-        # In practice, you may want to use a more robust association
         cls = None
         for det, cid in zip(detections, class_ids):
             if abs(x1 - det[0]) < 10 and abs(y1 - det[1]) < 10 and abs(x2 - det[2]) < 10 and abs(y2 - det[3]) < 10:
@@ -115,29 +140,47 @@ while True:  # Start an infinite loop to continuously process video frames
         cy = int((y1 + y2) / 2)
         cv2.circle(frame, (cx, cy), 4, (0, 0, 255), -1)
 
-        # Up counting
+        # Check if vehicle crosses the up line
         if (limitsUp[0] < cx < limitsUp[2]) and (limitsUp_y_min < cy < limitsUp_y_max):
-            if cls == 2 and track_id not in carCountUp:
-                carCountUp.add(track_id)
-            elif cls == 3 and track_id not in motorbikeCountUp:
-                motorbikeCountUp.add(track_id)
-            elif cls == 5 and track_id not in busCountUp:
-                busCountUp.add(track_id)
-            elif cls == 7 and track_id not in truckCountUp:
-                truckCountUp.add(track_id)
+            # Record that this vehicle has crossed the up line
+            vehicles_crossed_up_line[track_id] = (cls, frame_timestamp)
             lineUp_color = (0, 255, 0)  # Turn line green if hit
+            
+            # Check if this vehicle has already crossed the down line
+            if track_id in vehicles_crossed_down_line:
+                # Vehicle has crossed both lines (first down, then up) - count as UP
+                down_timestamp = vehicles_crossed_down_line[track_id][1]
+                # Only count if the lines were crossed in the correct order and within time limit
+                if frame_timestamp - down_timestamp < timeout_frames:
+                    if cls == 2 and track_id not in carCountUp:
+                        carCountUp.add(track_id)
+                    elif cls == 3 and track_id not in motorbikeCountUp:
+                        motorbikeCountUp.add(track_id)
+                    elif cls == 5 and track_id not in busCountUp:
+                        busCountUp.add(track_id)
+                    elif cls == 7 and track_id not in truckCountUp:
+                        truckCountUp.add(track_id)
 
-        # Down counting
+        # Check if vehicle crosses the down line
         if (limitsDown[0] < cx < limitsDown[2]) and (limitsDown_y_min < cy < limitsDown_y_max):
-            if cls == 2 and track_id not in carCountDown:
-                carCountDown.add(track_id)
-            elif cls == 3 and track_id not in motorbikeCountDown:
-                motorbikeCountDown.add(track_id)
-            elif cls == 5 and track_id not in busCountDown:
-                busCountDown.add(track_id)
-            elif cls == 7 and track_id not in truckCountDown:
-                truckCountDown.add(track_id)
+            # Record that this vehicle has crossed the down line
+            vehicles_crossed_down_line[track_id] = (cls, frame_timestamp)
             lineDown_color = (0, 255, 0)  # Turn line green if hit
+            
+            # Check if this vehicle has already crossed the up line
+            if track_id in vehicles_crossed_up_line:
+                # Vehicle has crossed both lines (first up, then down) - count as DOWN
+                up_timestamp = vehicles_crossed_up_line[track_id][1]
+                # Only count if the lines were crossed in the correct order and within time limit
+                if frame_timestamp - up_timestamp < timeout_frames:
+                    if cls == 2 and track_id not in carCountDown:
+                        carCountDown.add(track_id)
+                    elif cls == 3 and track_id not in motorbikeCountDown:
+                        motorbikeCountDown.add(track_id)
+                    elif cls == 5 and track_id not in busCountDown:
+                        busCountDown.add(track_id)
+                    elif cls == 7 and track_id not in truckCountDown:
+                        truckCountDown.add(track_id)
 
         label = f"{classname[cls]} ID:{track_id}"
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
@@ -181,6 +224,8 @@ while True:  # Start an infinite loop to continuously process video frames
         truckCountDown.clear()
         busCountDown.clear()
         motorbikeCountDown.clear()
+        vehicles_crossed_up_line.clear()  # Clear temporary tracking data too
+        vehicles_crossed_down_line.clear()
         frame_counter = 0
         interval_counter += 1
 
