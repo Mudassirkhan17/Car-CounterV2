@@ -5,29 +5,29 @@ import numpy as np
 from sort import Sort
 import pandas as pd
 
-model = YOLO("yolov5lu.pt")  # Load the pre-trained YOLOv5 nano model
+model = YOLO("yolov5su.pt")  # Load the pre-trained YOLOv5 nano model
 
 classname = ["Person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]  # List of class names that YOLO can detect
 
 vehicle_classes = set([2, 3, 5, 7])  # car, motorcycle, bus, truck
 
-start_seconds = 40  # Change this to where you want to start (in seconds)
+start_seconds = 20  # Change this to where you want to start (in seconds)
 
 # cap = cv2.VideoCapture(0)  # Initialize webcam capture (0 refers to the default camera)
-video_path = "location2.MTS"
+video_path = "location1.MTS"
 cap = cv2.VideoCapture(video_path) 
 # cap.set(3, 640)  # Set webcam width to 640 pixels
 # cap.set(4, 640)  # Set webcam height to 640 pixels
 
 cap.set(cv2.CAP_PROP_POS_MSEC, start_seconds * 1000)
 
-confidence_threshold = 0.05  # Default threshold for vehicles
-bike_confidence_threshold = 0.000  # Higher threshold for bicycle (class 1)
-car_confidence_threshold = 0.40
+confidence_threshold = 0.07  # Default threshold for vehicles
+bike_confidence_threshold = 0.003  # Higher threshold for bicycle (class 1)
+car_confidence_threshold = 0.45
 truck_confidence_threshold = 0.84
 
 # Initialize SORT tracker
-tracker = Sort(max_age=90, min_hits=2, iou_threshold=0.1)
+tracker = Sort(max_age=50, min_hits=2, iou_threshold=0.1)
 
 
 #laneA [900, 368+10, 1103, 393+10]
@@ -42,23 +42,26 @@ tracker = Sort(max_age=90, min_hits=2, iou_threshold=0.1)
 # laneb1 [240-30, 412, 624-30, 411]
 
 # Counting line and variables
-laneA = [1000, 328, 1158, 351]  # (x1, y1, x2, y2)
-laneB = [599-35, 396+7, 1071-35, 395+7]  # (514+100, 396+40, 1058+100, 387+40)
-laneC = [199, 404, 315, 444]  # Placeholder coordinates for laneC
-laneD = [136-60, 407, 311-90, 462]  # Placeholder coordinates for laneD
-laneE = [167, 359+10, 252, 338+10]  # Placeholder coordinates for laneE
-laneF = [167+60, 359+8, 252+60, 338+8]  # Placeholder coordinates for laneF
-laneG = [224, 324, 408-60, 322]  # Placeholder coordinates for laneG
+laneA = [614, 396-10, 1238, 387-10]  # (x1, y1, x2, y2)
+laneB = [614, 436-5, 1258, 427-5]  # (514+100, 396+40, 1058+100, 387+40)
+laneC = [70-15, 390-25, 610-15, 389-25]  # Placeholder coordinates for laneC
+laneD = [60-15, 401+10, 610-15, 399+10]  # Placeholder coordinates for laneD
+# laneE = [167, 359+10, 252, 338+10]  # Placeholder coordinates for laneE
+# laneF = [167+60, 359+8, 252+60, 338+8]  # Placeholder coordinates for laneF
+# laneG = [224, 324, 408-60, 322]  # Placeholder coordinates for laneG
 
-# laneD = [0, 0, 0, 0]
-# laneC = [0, 0, 0, 0]
 # laneB = [0, 0, 0, 0]
+# laneC = [0, 0, 0, 0]
+# laneD = [0, 0, 0, 0]
+laneE = [0, 0, 0, 0]
+laneF = [0, 0, 0, 0]
+laneG = [0, 0, 0, 0]
 
 # Define y-limits for robust line crossing
-laneA_y_min = laneA[1] - 12
-laneA_y_max = laneA[1] + 12
-laneB_y_min = laneB[1] - 23
-laneB_y_max = laneB[1] + 23
+laneA_y_min = laneA[1] - 30
+laneA_y_max = laneA[1] + 30
+laneB_y_min = laneB[1] - 20
+laneB_y_max = laneB[1] + 20
 laneC_y_min = laneC[1] - 17
 laneC_y_max = laneC[1] + 17
 laneD_y_min = laneD[1] - 17
